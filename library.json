@@ -1,13 +1,16 @@
 {
-    "id": "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}",
+    "id": "{9E8B7A6C-5D4E-3F2A-1B0C-9D8E7F6A5B4C}",
     "author": "PiTo",
     "name": "Roborock Qrevo Curv Library",
-    "url": "",
+    "url": "https://github.com/SymPiTo/MyRoborock",
     "compatibility": {
         "version": "6.0",
         "date": 1491343200
     },
     "version": "1.0",
     "build": 0,
-    "date": 0
+    "date": 0,
+    "modules": [
+        "Roborock/module.json"
+    ]
 }

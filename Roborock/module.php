@@ -1,117 +1,181 @@
 <?php
+declare(strict_types=1);
 
-class RoborockQrevoCurv extends IPSModule {
+class RoborockQrevoCurv extends IPSModule
+{
+    // Vollständiges Variablen-Array inklusive aller neuen Status-Signale
+    public static $Variables = [
+        // Bestehende Variablen
+        ['Roborock_State', 'Status', VARIABLETYPE_STRING, '', [], '', true, true, false],
+        ['Roborock_Battery', 'Battery', VARIABLETYPE_INTEGER, '~Intensity.100', [], '', false, true, false],
+        ['Roborock_Cleaning', 'Cleaning', VARIABLETYPE_BOOLEAN, '~Switch', [], '', true, true, false],
+        ['Roborock_Error', 'Error', VARIABLETYPE_STRING, '', [], '', false, true, false],
 
-    public function Create() {
+        // Neue Status-Signale & Dock-Werte
+        ['Roborock_WaterBoxStatus', 'Water Box Status', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_WashPhase', 'Wash Phase', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_WashReady', 'Wash Ready', VARIABLETYPE_BOOLEAN, '~Switch', [], '', false, true, false],
+        ['Roborock_FanPower', 'Fan Power', VARIABLETYPE_INTEGER, '', [], '', false, true, false],
+        ['Roborock_WaterBoxMode', 'Water Box Mode', VARIABLETYPE_INTEGER, '', [], '', false, true, false],
+        ['Roborock_WaterShortageStatus', 'Water Shortage', VARIABLETYPE_BOOLEAN, '~Alert', [], '', false, true, false],
+        ['Roborock_DustCollectionStatus', 'Dust Collection Status', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_MopMode', 'Mop Mode', VARIABLETYPE_INTEGER, '', [], '', false, true, false],
+        ['Roborock_DockErrorStatus', 'Dock Error Status', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_ChargeStatus', 'Charge Status', VARIABLETYPE_INTEGER, '', [], '', false, true, false],
+        ['Roborock_WashStatus', 'Wash Status', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_InWarmup', 'In Warmup', VARIABLETYPE_BOOLEAN, '~Switch', [], '', false, true, false],
+        ['Roborock_DryStatus', 'Dry Status', VARIABLETYPE_STRING, '', [], '', false, true, false],
+        ['Roborock_CleanPercent', 'Clean Percent', VARIABLETYPE_INTEGER, '~Intensity.100', [], '', false, true, false],
+        ['Roborock_CornerCleanMode', 'Corner Clean Mode', VARIABLETYPE_BOOLEAN, '~Switch', [], '', false, true, false],
+        ['Roborock_Repeat', 'Repeat', VARIABLETYPE_INTEGER, '', [], '', false, true, false],
+        ['Roborock_ReplenishMode', 'Replenish Mode', VARIABLETYPE_INTEGER, '', [], '', false, true, false]
+    ];
+
+    public function Create()
+    {
         parent::Create();
-        
-        // hi
-        // 1. Konfigurationseigenschaften registrieren
-        $this->RegisterPropertyString("MQTTTopic", "roborock/status");
-        $this->RegisterPropertyString("MQTTCommandTopic", "roborock/command/control");
-
-        // 2. Modul-Variablen anlegen (inkl. automatischer Profile----)
-        $this->MaintainVariable("Battery", "Batterie", 1, "~Battery.100", 10, true);
-        $this->MaintainVariable("RobotState", "Roboter Status", 1, "", 20, true);
-        $this->MaintainVariable("ErrorCode", "Fehlercode", 1, "", 30, true);
-        
-        $this->MaintainVariable("FanSpeed", "Saugstufe", 1, "", 40, true);
-        $this->MaintainVariable("WaterFlow", "Wassermenge", 1, "", 50, true);
-        $this->MaintainVariable("MopMode", "Wischmodus", 1, "", 60, true);
-        $this->MaintainVariable("Repeat", "Wiederholungen", 1, "", 70, true);
+        $this->ConnectParent('{C6D2AEB3-6E1F-4B2E-8E69-3A1A00246850}');
+        $this->RegisterPropertyString('MQTTTopicReceive', '');
+        $this->RegisterPropertyString('MQTTTopicSend', '');
     }
 
-    public function ApplyChanges() {
+    public function ApplyChanges()
+    {
         parent::ApplyChanges();
-        
-        // Verbindung zum ausgewählten Parent (MQTT-Server oder MQTT-Client) herstellen
-        // Über das Formular ("Parent") wird die ID dynamisch zugewiesen
-        $this->ConnectParent("{33DA7CCF-AC8A-488E-87A7-D24EAE63B9B3}"); // Fallback/Basis-Verbindung
 
-        // Topic-Filter setzen, damit nur relevante MQTT-Pakete im Modul landen
-        $topic = $this->ReadPropertyString("MQTTTopic");
-        $this->SetReceiveDataFilter(".*Topic.*" . preg_quote($topic) . ".*");
-    }
+        $Topic = $this->ReadPropertyString('MQTTTopicReceive');
+        if ($Topic !== '') {
+            $this->SetReceiveDataFilter('.*\"Topic\":\"' . $Topic . '.*');
+        } else {
+            $this->SetReceiveDataFilter('.*');
+        }
 
-    // --- 1. SENDEN: Wird aufgerufen, wenn im WebFront oder per Skript ein Wert geändert wird ---
-    public function RequestAction($Ident, $Value) {
-        switch ($Ident) {
-            case "FanSpeed":
-                $this->SendCommand("set_fan_speed", intval($Value));
-                $this->SetValue($Ident, intval($Value));
-                break;
-                
-            case "MopMode":
-                $this->SendCommand("set_mop_mode", intval($Value));
-                $this->SetValue($Ident, intval($Value));
-                break;
-                
-            case "WaterFlow":
-                $this->SendCommand("set_water_flow", intval($Value));
-                $this->SetValue($Ident, intval($Value));
-                break;
-                
-            case "Repeat":
-                $this->SendCommand("set_repeat", intval($Value));
-                $this->SetValue($Ident, intval($Value));
-                break;
-                
-            default:
-                throw new Exception("Unbekannter Ident: " . $Ident);
+        // Variablen über SDK-Methoden registrieren
+        foreach (self::$Variables as $Var) {
+            $ident = $Var[0];
+            $name = $Var[1];
+            $type = $Var[2];
+            $profile = $Var[3];
+
+            switch ($type) {
+                case VARIABLETYPE_BOOLEAN:
+                    $this->RegisterVariableBoolean($ident, $name, $profile, 0);
+                    break;
+                case VARIABLETYPE_INTEGER:
+                    $this->RegisterVariableInteger($ident, $name, $profile, 0);
+                    break;
+                case VARIABLETYPE_FLOAT:
+                    $this->RegisterVariableFloat($ident, $name, $profile, 0);
+                    break;
+                case VARIABLETYPE_STRING:
+                    $this->RegisterVariableString($ident, $name, $profile, 0);
+                    break;
+            }
         }
     }
 
-    // --- 2. EMPFANGEN: Verarbeitet das Status-JSON vom MQTT-Parent ---
-    public function ReceiveData($JSONString) {
-        $data = json_decode($JSONString, true);
-        
-        if (isset($data['Payload'])) {
-            $payload = is_string($data['Payload']) ? json_decode($data['Payload'], true) : $data['Payload'];
+    public function RequestAction($Ident, $Value)
+    {
+        switch ($Ident) {
+            case 'Roborock_Cleaning':
+                $Command = $Value ? 'start' : 'pause';
+                $this->SendCommand($Command);
+                SetValue($this->GetIDForIdent($Ident), $Value);
+                break;
+                
+            default:
+                throw new Exception('Invalid Ident');
+        }
+    }
+
+    public function ReceiveData($JSONString)
+    {
+        $Data = json_decode($JSONString);
+        $this->SendDebug('MQTT RX', $JSONString, 0);
+
+        if (property_exists($Data, 'Topic') && property_exists($Data, 'Payload')) {
+            $ReceiveTopic = $this->ReadPropertyString('MQTTTopicReceive');
             
-            if (is_array($payload)) {
-                
-                // Basis-Werte mappen
-                if (isset($payload['battery'])) {
-                    $this->SetValue("Battery", intval($payload['battery']));
+            if ($ReceiveTopic !== '' && $Data->Topic === $ReceiveTopic) {
+                $Payload = json_decode($Data->Payload);
+                if ($Payload === null) {
+                    return;
                 }
-                if (isset($payload['state'])) {
-                    $this->SetValue("RobotState", intval($payload['state']));
-                }
-                if (isset($payload['error_code'])) {
-                    $this->SetValue("ErrorCode", intval($payload['error_code']));
-                }
-                
-                // Steuerungs- und Statuswerte mappen
-                if (isset($payload['fan_power'])) {
-                    $this->SetValue("FanSpeed", intval($payload['fan_power']));
-                }
-                if (isset($payload['water_box_mode'])) {
-                    $this->SetValue("WaterFlow", intval($payload['water_box_mode']));
-                }
-                if (isset($payload['mop_mode'])) {
-                    $this->SetValue("MopMode", intval($payload['mop_mode']));
-                }
-                if (isset($payload['repeat'])) {
-                    $this->SetValue("Repeat", intval($payload['repeat']));
+
+                // Zuordnung der neuen und alten Payload-Felder zu den Variablen
+                $mapping = [
+                    'battery'                => 'Roborock_Battery',
+                    'state'                  => 'Roborock_State',
+                    'cleaning'               => 'Roborock_Cleaning',
+                    'error'                  => 'Roborock_Error',
+                    'water_box_status'       => 'Roborock_WaterBoxStatus',
+                    'wash_phase'             => 'Roborock_WashPhase',
+                    'wash_ready'             => 'Roborock_WashReady',
+                    'fan_power'              => 'Roborock_FanPower',
+                    'water_box_mode'         => 'Roborock_WaterBoxMode',
+                    'water_shortage_status'  => 'Roborock_WaterShortageStatus',
+                    'dust_collection_status' => 'Roborock_DustCollectionStatus',
+                    'mop_mode'               => 'Roborock_MopMode',
+                    'dock_error_status'      => 'Roborock_DockErrorStatus',
+                    'charge_status'          => 'Roborock_ChargeStatus',
+                    'wash_status'            => 'Roborock_WashStatus',
+                    'in_warmup'              => 'Roborock_InWarmup',
+                    'dry_status'             => 'Roborock_DryStatus',
+                    'clean_percent'          => 'Roborock_CleanPercent',
+                    'corner_clean_mode'      => 'Roborock_CornerCleanMode',
+                    'repeat'                 => 'Roborock_Repeat',
+                    'replenish_mode'         => 'Roborock_ReplenishMode'
+                ];
+
+                foreach ($mapping as $key => $ident) {
+                    if (isset($Payload->$key)) {
+                        $VarID = @$this->GetIDForIdent($ident);
+                        if ($VarID !== false) {
+                            $val = $Payload->$key;
+                            $curType = IPS_GetVariable($VarID)['VariableType'];
+                            
+                            // Typgerecht setzen
+                            switch ($curType) {
+                                case VARIABLETYPE_BOOLEAN:
+                                    SetValue($VarID, (bool)$val);
+                                    break;
+                                case VARIABLETYPE_INTEGER:
+                                    SetValue($VarID, (int)$val);
+                                    break;
+                                case VARIABLETYPE_FLOAT:
+                                    SetValue($VarID, (float)$val);
+                                    break;
+                                case VARIABLETYPE_STRING:
+                                    SetValue($VarID, (string)$val);
+                                    break;
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    // --- HILFSFUNKTION: Befehl als JSON über das MQTT-Parent senden ---
-    private function SendCommand(string $command, int $value) {
-        $payload = json_encode([
-            "command" => $command,
-            "value" => $value
-        ]);
-
-        $topic = $this->ReadPropertyString("MQTTCommandTopic");
+    public function SendCommand(string $Command)
+    {
+        $Topic = $this->ReadPropertyString('MQTTTopicSend');
         
-        // Standardisierter MQTT TX Datenfluss in IP-Symcon
-        $this->SendDataToParent(json_encode([
-            "DataID" => "{0EF86B8D-C7CC-4F68-9A24-E1E5E4E38C46}",
-            "Topic" => $topic,
-            "Payload" => $payload
-        ]));
+        if ($Topic === '') {
+            $this->SendDebug('MQTT TX', 'Sende-Topic ist nicht konfiguriert!', 0);
+            return;
+        }
+
+        $Data = [
+            'DataID'           => '{043EA491-0325-4ADD-8FC2-A30C8EEB4D3F}',
+            'PacketType'       => 3,
+            'Payload'          => $Command,
+            'Topic'            => $Topic,
+            'Retain'           => false,
+            'QualityOfService' => 0
+        ];
+        
+        $JSONString = json_encode($Data);
+        $this->SendDebug('MQTT TX', $JSONString, 0);
+        $this->SendDataToParent($JSONString);
     }
 }

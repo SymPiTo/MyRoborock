@@ -1,31 +1,15 @@
 {
     "elements": [
         {
-            "type": "Label",
-            "label": "Roborock Qrevo Curv - MQTT Brücken-Konfiguration"
-        },
-        {
-            "type": "SelectIO",
-            "name": "Parent",
-            "caption": "MQTT-Quelle (Server oder Client)"
+            "type": "ValidationTextBox",
+            "name": "MQTTTopicReceive",
+            "caption": "MQTT Topic (Empfang / Status)"
         },
         {
             "type": "ValidationTextBox",
-            "name": "MQTTTopic",
-            "caption": "Status-Topic (Empfang)"
-        },
-        {
-            "type": "ValidationTextBox",
-            "name": "MQTTCommandTopic",
-            "caption": "Befehls-Topic (Senden)"
+            "name": "MQTTTopicSend",
+            "caption": "MQTT Topic (Senden / Befehl)"
         }
     ],
-    "actions": [
-        {
-            "type": "Button",
-            "caption": "Konfiguration übernehmen",
-            "onClick": "IPS_ApplyChanges($id);"
-        }
-    ],
-    "status": []
+    "actions": []
 }

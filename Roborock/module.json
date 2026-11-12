@@ -1,16 +1,15 @@
 {
-    "id": "{1A2B3C4D-5E6F-7890-ABCD-EF1234567890}",
+    "id": "{2E1B2E6E-FC1F-A6C5-B1E6-C13DCAB5F239}",
     "name": "Roborock Qrevo Curv",
     "type": 3,
     "vendor": "Roborock",
-    "aliases": ["Roborock MQTT Bridge"],
+    "aliases": ["Roborock MQTT Device"],
     "parentRequirements": [
-        "{33DA7CCF-AC8A-488E-87A7-D24EAE63B9B3}",
-        "{973A3A81-B69E-4381-B5E9-4E80AA04D320}"
+        "{043EA491-0325-4ADD-8FC2-A30C8EEB4D3F}"
     ],
     "childRequirements": [],
     "implemented": [
-        "{0EF86B8D-C7CC-4F68-9A24-E1E5E4E38C46}"
+        "{7F7632D9-FA40-4F38-8DEA-C83CD4325A32}"
     ],
     "prefix": "RRQ"
 }

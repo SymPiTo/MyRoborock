@@ -5,7 +5,7 @@ class RoborockQrevoCurv extends IPSModule {
     public function Create() {
         parent::Create();
         
-        // halllo
+        // halllo Teo
         // 1. Konfigurationseigenschaften registrieren
         $this->RegisterPropertyString("MQTTTopic", "roborock/status");
         $this->RegisterPropertyString("MQTTCommandTopic", "roborock/command/control");

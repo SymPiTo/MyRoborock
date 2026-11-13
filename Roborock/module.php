@@ -178,4 +178,33 @@ class RoborockQrevoCurv extends IPSModule
         $this->SendDebug('MQTT TX', $JSONString, 0);
         $this->SendDataToParent($JSONString);
     }
+
+// --- Native IP-Symcon 9 HTML-SDK Visualisierung ---
+
+    public function GetVisualizationTile()
+    {
+        // Initiales Laden mit gefüllten Daten aus GetFullUpdateMessage
+        $initialHandling = '<script>handleMessage(' . json_encode($this->GetFullUpdateMessage()) . ');</script>';
+        
+        // Statisches HTML aus der separaten module.html laden
+        $module = file_get_contents(__DIR__ . '/module.html');
+
+        // Erst das HTML (definiert handleMessage), dann das Script ausführen
+        return $module . $initialHandling;
+    }
+
+    private function GetFullUpdateMessage()
+    {
+        $batteryID = @$this->GetIDForIdent('Roborock_Battery');
+        $stateID = @$this->GetIDForIdent('Roborock_State');
+        $percentID = @$this->GetIDForIdent('Roborock_CleanPercent');
+
+        $result = [
+            'battery'       => $batteryID !== false ? GetValue($batteryID) : 0,
+            'state'         => $stateID !== false ? GetValue($stateID) : 'Bereit',
+            'clean_percent' => $percentID !== false ? GetValue($percentID) : 0
+        ];
+
+        return $result;
+    }
 }
